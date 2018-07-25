@@ -82,7 +82,16 @@ void gd_egl_draw(VirtualConsole *vc)
                        vc->gfx.esurface, vc->gfx.ectx);
 
         window = gtk_widget_get_window(vc->gfx.drawing_area);
-        gdk_drawable_get_size(window, &ww, &wh);
+        //gdk_drawable_get_size(window, &ww, &wh);
+        ww=gdk_window_get_width(window)*gdk_window_get_scale_factor(window);
+        wh=gdk_window_get_height(window)*gdk_window_get_scale_factor(window);
+        if(vc->gfx.w&&vc->gfx.h){
+            if(ww*vc->gfx.h<wh*vc->gfx.w){
+                wh=ww*vc->gfx.h/vc->gfx.w;
+            }else{
+                ww=wh*vc->gfx.w/vc->gfx.h;
+            }
+        }
         surface_gl_setup_viewport(vc->gfx.gls, vc->gfx.ds, ww, wh);
         surface_gl_render_texture(vc->gfx.gls, vc->gfx.ds);
 
@@ -265,14 +274,23 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
                    vc->gfx.esurface, vc->gfx.ectx);
 
     window = gtk_widget_get_window(vc->gfx.drawing_area);
-    gdk_drawable_get_size(window, &ww, &wh);
+    //gdk_drawable_get_size(window, &ww, &wh);
+    ww=gdk_window_get_width(window)*gdk_window_get_scale_factor(window);
+    wh=gdk_window_get_height(window)*gdk_window_get_scale_factor(window);
+    if(vc->gfx.w&&vc->gfx.h){
+        if(ww*vc->gfx.h<wh*vc->gfx.w){
+            wh=ww*vc->gfx.h/vc->gfx.w;
+        }else{
+            ww=wh*vc->gfx.w/vc->gfx.h;
+        }
+    }
     egl_fb_setup_default(&vc->gfx.win_fb, ww, wh);
     if (vc->gfx.cursor_fb.texture) {
         egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
                          vc->gfx.y0_top);
         egl_texture_blend(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.cursor_fb,
                           vc->gfx.y0_top,
-                          vc->gfx.cursor_x, vc->gfx.cursor_y);
+                          vc->gfx.cursor_x*ww/(vc->gfx.w?vc->gfx.w:1), vc->gfx.cursor_y*wh/(vc->gfx.h?vc->gfx.h:1));
     } else {
         egl_fb_blit(&vc->gfx.win_fb, &vc->gfx.guest_fb, !vc->gfx.y0_top);
     }
