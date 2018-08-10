@@ -394,7 +394,37 @@ static void gd_update_geometry_hints(VirtualConsole *vc)
             mask |= GDK_HINT_MIN_SIZE;
         }
         geo_widget = vc->gfx.drawing_area;
-        gtk_widget_set_size_request(geo_widget, geo.min_width, geo.min_height);
+        int w_final=geo.min_width;
+        int h_final=geo.min_height;
+        int dpi_scale=gdk_window_get_scale_factor(gtk_widget_get_window(geo_widget));
+        int screen_width, screen_height;
+        
+#if GTK_CHECK_VERSION(3, 22, 0)
+        {
+            GdkDisplay *dpy = gtk_widget_get_display(geo_widget);
+            GdkWindow *win = gtk_widget_get_window(geo_widget);
+            GdkMonitor *monitor = gdk_display_get_monitor_at_window(dpy, win);
+            GdkRectangle geometry;
+            gdk_monitor_get_geometry(monitor, &geometry);
+            screen_width = geometry.width;
+            screen_height = geometry.height;
+        }
+#else
+        {
+            screen_width = gdk_screen_get_width(screen);
+            screen_height = gdk_screen_get_height(screen);
+        }
+#endif
+		if(w_final<screen_width&&h_final<screen_height){
+            //we are fine, go ahead with DPI scaling
+        }else{
+            //we need to cancel out DPI scaling
+            w_final/=dpi_scale;
+            h_final/=dpi_scale;
+        }
+        geo.min_width=w_final;
+        geo.min_height=h_final;
+        gtk_widget_set_size_request(geo_widget, w_final, h_final);
 
 #if defined(CONFIG_VTE)
     } else if (vc->type == GD_VC_VTE) {

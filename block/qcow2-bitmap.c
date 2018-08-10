@@ -964,6 +964,7 @@ bool qcow2_load_dirty_bitmaps(BlockDriverState *bs, Error **errp)
     }
 
     QSIMPLEQ_FOREACH(bm, bm_list, entry) {
+        bm->flags &= ~BME_FLAG_IN_USE; //hack to ignore inconsistent bitmaps and use them anyway
         if (!(bm->flags & BME_FLAG_IN_USE)) {
             BdrvDirtyBitmap *bitmap = load_bitmap(bs, bm, errp);
             if (bitmap == NULL) {
@@ -985,7 +986,7 @@ bool qcow2_load_dirty_bitmaps(BlockDriverState *bs, Error **errp)
             /* in_use flags must be updated */
             int ret = update_ext_header_and_dir_in_place(bs, bm_list);
             if (ret < 0) {
-                error_setg_errno(errp, -ret, "Can't update bitmap directory");
+                error_setg_errno(errp, -ret, "Can't update bitmap directory A");
                 goto fail;
             }
             header_updated = true;
@@ -1038,6 +1039,7 @@ int qcow2_reopen_bitmaps_rw_hint(BlockDriverState *bs, bool *header_updated,
     }
 
     QSIMPLEQ_FOREACH(bm, bm_list, entry) {
+        //bm->flags &= ~BME_FLAG_IN_USE; //hack to ignore inconsistent bitmaps and use them anyway
         if (!(bm->flags & BME_FLAG_IN_USE)) {
             BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(bs, bm->name);
             if (bitmap == NULL) {
@@ -1059,14 +1061,15 @@ int qcow2_reopen_bitmaps_rw_hint(BlockDriverState *bs, bool *header_updated,
 
     if (ro_dirty_bitmaps != NULL) {
         /* in_use flags must be updated */
-        ret = update_ext_header_and_dir_in_place(bs, bm_list);
-        if (ret < 0) {
-            error_setg_errno(errp, -ret, "Can't update bitmap directory");
-            goto out;
-        }
-        if (header_updated != NULL) {
-            *header_updated = true;
-        }
+        ////QM: we ignore it anyway, this prevents commit from working so we ditch it
+        //ret = update_ext_header_and_dir_in_place(bs, bm_list);
+        //if (ret < 0) {
+        //    error_setg_errno(errp, -ret, "Can't update bitmap directory B");
+        //    goto out;
+        //}
+        //if (header_updated != NULL) {
+        //    *header_updated = true;
+        //}
         g_slist_foreach(ro_dirty_bitmaps, set_readonly_helper, false);
     }
 
@@ -1257,7 +1260,9 @@ static Qcow2Bitmap *find_bitmap_by_name(Qcow2BitmapList *bm_list,
 {
     Qcow2Bitmap *bm;
 
+    //fprintf(stderr,"find_bitmap_by_name %s ===\n",name);
     QSIMPLEQ_FOREACH(bm, bm_list, entry) {
+        //fprintf(stderr,"%s %s ===\n",name,bm->name);
         if (strcmp(name, bm->name) == 0) {
             return bm;
         }
@@ -1378,11 +1383,12 @@ void qcow2_store_persistent_dirty_bitmaps(BlockDriverState *bs, Error **errp)
             bm->name = g_strdup(name);
             QSIMPLEQ_INSERT_TAIL(bm_list, bm, entry);
         } else {
-            if (!(bm->flags & BME_FLAG_IN_USE)) {
-                error_setg(errp, "Bitmap '%s' already exists in the image",
-                           name);
-                goto fail;
-            }
+            //QM: we are dropping BME_FLAG_IN_USE, so just overwrite it!
+            //if (!(bm->flags & BME_FLAG_IN_USE)) {
+            //    error_setg(errp, "Bitmap '%s' already exists in the image",
+            //               name);
+            //    goto fail;
+            //}
             tb = g_memdup(&bm->table, sizeof(bm->table));
             bm->table.offset = 0;
             bm->table.size = 0;

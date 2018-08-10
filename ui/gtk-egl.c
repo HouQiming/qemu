@@ -85,12 +85,19 @@ void gd_egl_draw(VirtualConsole *vc)
         //gdk_drawable_get_size(window, &ww, &wh);
         ww=gdk_window_get_width(window)*gdk_window_get_scale_factor(window);
         wh=gdk_window_get_height(window)*gdk_window_get_scale_factor(window);
+        int ww0=ww;
+        int wh0=wh;
         if(vc->gfx.w&&vc->gfx.h){
             if(ww*vc->gfx.h<wh*vc->gfx.w){
                 wh=ww*vc->gfx.h/vc->gfx.w;
             }else{
                 ww=wh*vc->gfx.w/vc->gfx.h;
             }
+        }
+        if(ww!=ww0||wh!=wh0){
+            glViewport(0,0,ww,wh);
+            glClearColor(0.f,0.f,0.f,0.f);
+            glClear(GL_COLOR_BUFFER_BIT);
         }
         surface_gl_setup_viewport(vc->gfx.gls, vc->gfx.ds, ww, wh);
         surface_gl_render_texture(vc->gfx.gls, vc->gfx.ds);
@@ -277,6 +284,8 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
     //gdk_drawable_get_size(window, &ww, &wh);
     ww=gdk_window_get_width(window)*gdk_window_get_scale_factor(window);
     wh=gdk_window_get_height(window)*gdk_window_get_scale_factor(window);
+    int ww0=ww;
+    int wh0=wh;
     if(vc->gfx.w&&vc->gfx.h){
         if(ww*vc->gfx.h<wh*vc->gfx.w){
             wh=ww*vc->gfx.h/vc->gfx.w;
@@ -286,6 +295,12 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
     }
     egl_fb_setup_default(&vc->gfx.win_fb, ww, wh);
     if (vc->gfx.cursor_fb.texture) {
+        if((ww!=ww0||wh!=wh0)&&!x&&!y&&w==vc->gfx.w&&h==vc->gfx.h){
+            glBindFramebuffer(GL_FRAMEBUFFER_EXT, vc->gfx.win_fb.framebuffer);
+            glViewport(0,0,ww0,wh0);
+            glClearColor(0.f,0.f,0.f,0.f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
         egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
                          vc->gfx.y0_top);
         egl_texture_blend(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.cursor_fb,

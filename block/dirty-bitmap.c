@@ -89,7 +89,9 @@ BdrvDirtyBitmap *bdrv_find_dirty_bitmap(BlockDriverState *bs, const char *name)
     BdrvDirtyBitmap *bm;
 
     assert(name);
+    //fprintf(stderr,">>> bdrv_find_dirty_bitmap %s\n",name);
     QLIST_FOREACH(bm, &bs->dirty_bitmaps, list) {
+        //fprintf(stderr,"%s %s >>>\n",name,bm->name);
         if (bm->name && !strcmp(name, bm->name)) {
             return bm;
         }
