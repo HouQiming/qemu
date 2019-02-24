@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include "qemu/osdep.h"
+#include "qemu/main-loop.h"
 #include "hw/hw.h"
 #include "ui/console.h"
 #include "hw/usb.h"
@@ -641,17 +642,20 @@ static void usb_hid_handle_reset(USBDevice *dev)
     hid_reset(&us->hid);
 }
 
+static void hidraw_changed(void *opaque)
+{
+    USBHIDState *us = (USBHIDState*)opaque;
+    us->hid.n=1;
+    usb_hid_changed(&us->hid);
+}
+
 static int hidraw_poll(USBHIDState *us, uint8_t *data, int length){
 	//read the actual device, non-blockingly
-	struct pollfd fds[1];
 	if(us->fd_hidraw<=0){return 0;}
-	memset(fds,0,sizeof(fds));
-	fds[0].fd=us->fd_hidraw;
-	fds[0].events=POLLIN;
-	int poll_ret=poll(fds,1,0);
-	if(poll_ret<=0){return 0;}
+	if(!us->hid.n){return 0;}
 	int n_read=read(us->fd_hidraw,data,length);
-	return n_read>0?n_read:0;
+	us->hid.n=0;
+    return n_read>0?n_read:0;
 }
 
 static void usb_hid_handle_control(USBDevice *dev, USBPacket *p,
@@ -801,6 +805,7 @@ static void usb_hid_unrealize(USBDevice *dev, Error **errp)
 {
     USBHIDState *us = USB_HID(dev);
     if(us->hid.kind==HID_HIDRAW&&us->fd_hidraw>0){
+        qemu_set_fd_handler(us->fd_hidraw, NULL, NULL, NULL);
         close(us->fd_hidraw);
         us->fd_hidraw=0;
     }
@@ -873,6 +878,7 @@ static void usb_hidraw_realize(USBDevice *dev, Error **errp)
         error_setg(errp, "unable to open '%s', error %d",us->hid_device,us->fd_hidraw);
         return;
     }
+    qemu_set_fd_handler(us->fd_hidraw,hidraw_changed,NULL,us);
     USBDesc* new_desc_hidraw2=(USBDesc*)malloc(sizeof(desc_hidraw2));
     memcpy(new_desc_hidraw2,&desc_hidraw2,sizeof(desc_hidraw2));
     new_desc_hidraw2->high=(USBDescDevice*)malloc(sizeof(desc_device_hidraw2));
