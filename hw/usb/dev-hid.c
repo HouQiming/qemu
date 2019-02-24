@@ -488,8 +488,8 @@ static const USBDescIface desc_iface_hidraw2 = {
         {
             .bEndpointAddress      = USB_DIR_IN | 0x01,
             .bmAttributes          = USB_ENDPOINT_XFER_INT,
-            .wMaxPacketSize        = 8,
-            .bInterval             = 7, /* 2 ^ (8-1) * 125 usecs = 8 ms */
+            .wMaxPacketSize        = 1024,
+            .bInterval             = 4, /* 2 ^ (8-1) * 125 usecs = 8 ms */
         },
     },
 };
