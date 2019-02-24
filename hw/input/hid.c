@@ -504,7 +504,9 @@ void hid_reset(HIDState *hs)
 
 void hid_free(HIDState *hs)
 {
-    qemu_input_handler_unregister(hs->s);
+    if (hs->kind == HID_KEYBOARD||hs->kind == HID_MOUSE||hs->kind == HID_TABLET) {
+    	qemu_input_handler_unregister(hs->s);
+    }
     hid_del_idle_timer(hs);
 }
 

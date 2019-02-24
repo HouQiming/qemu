@@ -911,22 +911,25 @@ static void usb_hidraw_realize(USBDevice *dev, Error **errp)
     memcpy((void*)new_desc_hidraw2->high,&desc_device_hidraw2,sizeof(desc_device_hidraw2));
     ((USBDescDevice*)new_desc_hidraw2->high)->confs=(USBDescConfig*)malloc(sizeof(USBDescConfig));
     memcpy((void*)((USBDescDevice*)new_desc_hidraw2->high)->confs,desc_device_hidraw2.confs,sizeof(USBDescConfig));
-    ((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs=(USBDescIface*)malloc(sizeof(USBDescIface));
-    memcpy((void*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs,&desc_iface_hidraw2,sizeof(desc_iface_hidraw2));
-    ((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->descs=(USBDescOther*)malloc(sizeof(USBDescOther));
-    memcpy((void*)((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->descs,desc_iface_hidraw2.descs,sizeof(USBDescOther));
-    ((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->bInterfaceSubClass=us->subclass;
-    ((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->bInterfaceProtocol=us->protocol;
-    ((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->descs->data=(uint8_t*)malloc(9);
-    memcpy((void*)((USBDescIface*)((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs)->descs->data,desc_iface_hidraw2.descs->data,9);
+    USBDescIface* new_if=(USBDescIface*)malloc(sizeof(USBDescIface));
+    ((USBDescConfig*)((USBDescDevice*)new_desc_hidraw2->high)->confs)[0].ifs=new_if;
+    memcpy((void*)new_if,&desc_iface_hidraw2,sizeof(desc_iface_hidraw2));
+    new_if->descs=(USBDescOther*)malloc(sizeof(USBDescOther));
+    memcpy((void*)new_if->descs,desc_iface_hidraw2.descs,sizeof(USBDescOther));
+    new_if->eps=(USBDescEndpoint*)malloc(sizeof(USBDescEndpoint));
+    memcpy((void*)new_if->eps,desc_iface_hidraw2.eps,sizeof(USBDescEndpoint));
+    new_if->bInterfaceSubClass=us->subclass;
+    new_if->bInterfaceProtocol=us->protocol;
+    new_if->descs->data=(uint8_t*)malloc(9);
+    memcpy((void*)new_if->descs->data,desc_iface_hidraw2.descs->data,9);
     int n_read=0;
     int fd=open(us->hid_descriptor,O_RDONLY);
     if(fd>0){
     	n_read=read(fd,g_read_test_buffer,4096);
     	close(fd);
     }
-    ((uint8_t*)new_desc_hidraw2->high->confs[0].ifs->descs->data)[7]=(uint8_t)((uint32_t)(n_read&0xff));
-    ((uint8_t*)new_desc_hidraw2->high->confs[0].ifs->descs->data)[8]=(uint8_t)((uint32_t)((n_read>>8)&0xff));
+    ((uint8_t*)new_if->descs->data)[7]=(uint8_t)((uint32_t)(n_read&0xff));
+    ((uint8_t*)new_if->descs->data)[8]=(uint8_t)((uint32_t)((n_read>>8)&0xff));
     usb_hid_initfn(dev, HID_HIDRAW, NULL, new_desc_hidraw2, errp);
 }
 
