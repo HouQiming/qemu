@@ -495,7 +495,7 @@ void hid_reset(HIDState *hs)
         break;
     }
     hs->head = 0;
-    hs->n = 0;
+   	hs->n = 0;
     hs->protocol = 1;
     hs->idle = 0;
     hs->idle_pending = false;
