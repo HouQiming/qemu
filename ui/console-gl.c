@@ -99,6 +99,7 @@ void surface_gl_update_texture(QemuGLShader *gls,
                     surface->glformat, surface->gltype,
                     data + surface_stride(surface) * y
                     + surface_bytes_per_pixel(surface) * x);
+    //fprintf(stderr,"%s %u %d\n",__func__,surface->texture,glGetError());
 }
 
 void surface_gl_render_texture(QemuGLShader *gls,
@@ -110,6 +111,7 @@ void surface_gl_render_texture(QemuGLShader *gls,
     glClear(GL_COLOR_BUFFER_BIT);
 
     qemu_gl_run_texture_blit(gls, false);
+    //fprintf(stderr,"%s %u %d\n",__func__,surface->texture,glGetError());
 }
 
 void surface_gl_destroy_texture(QemuGLShader *gls,

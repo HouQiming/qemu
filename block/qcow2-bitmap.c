@@ -580,9 +580,13 @@ static Qcow2BitmapList *bitmap_list_load(BlockDriverState *bs, uint64_t offset,
         }
 
         if (++nb_dir_entries > s->nb_bitmaps) {
-            error_setg(errp, "More bitmaps found than specified in header"
-                       " extension");
-            goto fail;
+            //error_setg(errp, "More bitmaps found than specified in header"
+            //           " extension");
+            fprintf(stderr, "More bitmaps found than specified in header"
+                       " extension\n");
+            //goto fail;
+            g_free(dir);
+            return bm_list;
         }
         bitmap_dir_entry_to_cpu(e);
 
@@ -597,9 +601,10 @@ static Qcow2BitmapList *bitmap_list_load(BlockDriverState *bs, uint64_t offset,
 
         ret = check_dir_entry(bs, e);
         if (ret < 0) {
-            error_setg(errp, "Bitmap '%.*s' doesn't satisfy the constraints",
+            fprintf(stderr, "Bitmap '%.*s' doesn't satisfy the constraints\n",
                        e->name_size, dir_entry_name_field(e));
-            goto fail;
+            //goto fail;
+            continue;
         }
 
         bm = g_new0(Qcow2Bitmap, 1);
@@ -625,8 +630,11 @@ static Qcow2BitmapList *bitmap_list_load(BlockDriverState *bs, uint64_t offset,
     return bm_list;
 
 broken_dir:
-    ret = -EINVAL;
-    error_setg(errp, "Broken bitmap directory");
+    fprintf(stderr,"Broken bitmap dir\n");
+    g_free(dir);
+    return bm_list;
+    //ret = -EINVAL;
+    //error_setg(errp, "Broken bitmap directory");
 
 fail:
     g_free(dir);

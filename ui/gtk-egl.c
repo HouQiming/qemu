@@ -63,6 +63,7 @@ void gd_egl_init(VirtualConsole *vc)
     assert(vc->gfx.esurface);
 }
 
+extern int g_egl_stuff_redo;
 void gd_egl_draw(VirtualConsole *vc)
 {
     GdkWindow *window;
@@ -78,10 +79,24 @@ void gd_egl_draw(VirtualConsole *vc)
         if (!vc->gfx.ds) {
             return;
         }
+        //if(g_egl_stuff_redo){
+        //    window = gtk_widget_get_window(vc->gfx.drawing_area);
+        //    #if GTK_CHECK_VERSION(3, 0, 0)
+        //        Window x11_window = gdk_x11_window_get_xid(window);
+        //    #else
+        //        Window x11_window = gdk_x11_drawable_get_xid(window);
+        //    #endif
+        //    EGLContext a = qemu_egl_init_ctx();
+        //    if(a){vc->gfx.ectx =a;}
+        //    EGLSurface b=qemu_egl_init_surface_x11(vc->gfx.ectx, x11_window);
+        //    if(b){vc->gfx.esurface =b;}
+        //    g_egl_stuff_redo=0;
+        //}
         eglMakeCurrent(qemu_egl_display, vc->gfx.esurface,
                        vc->gfx.esurface, vc->gfx.ectx);
 
         window = gtk_widget_get_window(vc->gfx.drawing_area);
+        //fprintf(stderr,"%p %p %x %04x %d\n",qemu_egl_display,vc->gfx.esurface,glGetError(),eglGetError(),rand());
         //gdk_drawable_get_size(window, &ww, &wh);
         ww=gdk_window_get_width(window)*gdk_window_get_scale_factor(window);
         wh=gdk_window_get_height(window)*gdk_window_get_scale_factor(window);
@@ -294,13 +309,14 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
         }
     }
     egl_fb_setup_default(&vc->gfx.win_fb, ww, wh);
+    if((ww!=ww0||wh!=wh0)&&!x&&!y&&w==vc->gfx.w&&h==vc->gfx.h){
+        glBindFramebuffer(GL_FRAMEBUFFER_EXT, vc->gfx.win_fb.framebuffer);
+        glViewport(0,0,ww0,wh0);
+        glClearColor(0.f,0.f,0.f,0.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+    //fprintf(stderr,"code path B\n");
     if (vc->gfx.cursor_fb.texture) {
-        if((ww!=ww0||wh!=wh0)&&!x&&!y&&w==vc->gfx.w&&h==vc->gfx.h){
-            glBindFramebuffer(GL_FRAMEBUFFER_EXT, vc->gfx.win_fb.framebuffer);
-            glViewport(0,0,ww0,wh0);
-            glClearColor(0.f,0.f,0.f,0.f);
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
         egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
                          vc->gfx.y0_top);
         egl_texture_blend(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.cursor_fb,

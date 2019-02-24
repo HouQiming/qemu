@@ -1,4 +1,5 @@
 /*
+ * GTK is buggy shit, without compositing it turns white
  * GTK UI
  *
  * Copyright IBM, Corp. 2012
@@ -514,6 +515,7 @@ static void gtk_release_modifiers(GtkDisplayState *s)
     }
 }
 
+/*
 static void gd_widget_reparent(GtkWidget *from, GtkWidget *to,
                                GtkWidget *widget)
 {
@@ -522,6 +524,7 @@ static void gd_widget_reparent(GtkWidget *from, GtkWidget *to,
     gtk_container_add(GTK_CONTAINER(to), widget);
     g_object_unref(G_OBJECT(widget));
 }
+*/
 
 /** DisplayState Callbacks **/
 
@@ -1334,16 +1337,16 @@ static void gd_menu_switch_vc(GtkMenuItem *item, void *opaque)
     s->ignore_keys = false;
 }
 
-static void gd_accel_switch_vc(void *opaque)
-{
-    VirtualConsole *vc = opaque;
+//static void gd_accel_switch_vc(void *opaque)
+//{
+//    VirtualConsole *vc = opaque;
 
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vc->menu_item), TRUE);
-#if !GTK_CHECK_VERSION(3, 0, 0)
-    /* GTK2 sends the accel key to the target console - ignore this until */
-    vc->s->ignore_keys = true;
-#endif
-}
+//    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vc->menu_item), TRUE);
+//#if !GTK_CHECK_VERSION(3, 0, 0)
+//    /* GTK2 sends the accel key to the target console - ignore this until */
+//    vc->s->ignore_keys = true;
+//#endif
+//}
 
 static void gd_menu_show_tabs(GtkMenuItem *item, void *opaque)
 {
@@ -1358,6 +1361,7 @@ static void gd_menu_show_tabs(GtkMenuItem *item, void *opaque)
     gd_update_windowsize(vc);
 }
 
+/*
 static gboolean gd_tab_window_close(GtkWidget *widget, GdkEvent *event,
                                     void *opaque)
 {
@@ -1385,9 +1389,13 @@ static gboolean gd_win_grab(void *opaque)
     }
     return TRUE;
 }
+*/
 
+int g_egl_stuff_redo=0;
 static void gd_menu_untabify(GtkMenuItem *item, void *opaque)
 {
+    g_egl_stuff_redo=1;
+    /*
     GtkDisplayState *s = opaque;
     VirtualConsole *vc = gd_vc_find_current(s);
 
@@ -1417,6 +1425,7 @@ static void gd_menu_untabify(GtkMenuItem *item, void *opaque)
         gd_update_geometry_hints(vc);
         gd_update_caption(s);
     }
+    */
 }
 
 static void gd_menu_show_menubar(GtkMenuItem *item, void *opaque)
@@ -1478,6 +1487,19 @@ static void gd_accel_full_screen(void *opaque)
 {
     GtkDisplayState *s = opaque;
     gtk_menu_item_activate(GTK_MENU_ITEM(s->full_screen_item));
+}
+
+static void gd_accel_lock(void *opaque)
+{
+	gd_accel_full_screen(opaque);
+	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' hqm");
+	a=a;
+}
+
+static void gd_lock_vc(GtkMenuItem *item, void *opaque)
+{
+	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' hqm");
+	a=a;
 }
 
 static void gd_menu_zoom_in(GtkMenuItem *item, void *opaque)
@@ -1829,13 +1851,10 @@ static GSList *gd_vc_menu_init(GtkDisplayState *s, VirtualConsole *vc,
                                int idx, GSList *group, GtkWidget *view_menu)
 {
     vc->menu_item = gtk_radio_menu_item_new_with_mnemonic(group, vc->label);
-    gtk_accel_group_connect(s->accel_group, GDK_KEY_1 + idx,
-            HOTKEY_MODIFIERS, 0,
-            g_cclosure_new_swap(G_CALLBACK(gd_accel_switch_vc), vc, NULL));
 #if GTK_CHECK_VERSION(3, 8, 0)
-    gtk_accel_label_set_accel(
-            GTK_ACCEL_LABEL(gtk_bin_get_child(GTK_BIN(vc->menu_item))),
-            GDK_KEY_1 + idx, HOTKEY_MODIFIERS);
+    //gtk_accel_label_set_accel(
+    //        GTK_ACCEL_LABEL(gtk_bin_get_child(GTK_BIN(vc->menu_item))),
+    //        GDK_KEY_1 + idx, HOTKEY_MODIFIERS);
 #endif
 
     g_signal_connect(vc->menu_item, "activate",
@@ -2256,12 +2275,22 @@ static GtkWidget *gd_create_menu_view(GtkDisplayState *s)
 
     gtk_accel_group_connect(s->accel_group, GDK_KEY_f, HOTKEY_MODIFIERS, 0,
             g_cclosure_new_swap(G_CALLBACK(gd_accel_full_screen), s, NULL));
+    GtkWidget *lock_menu_item=gtk_menu_item_new_with_mnemonic(_("_lock"));
+    gtk_accel_group_connect(s->accel_group, GDK_KEY_l, GDK_SUPER_MASK, 0,
+            g_cclosure_new_swap(G_CALLBACK(gd_accel_lock), s, NULL));
+
 #if GTK_CHECK_VERSION(3, 8, 0)
     gtk_accel_label_set_accel(
             GTK_ACCEL_LABEL(gtk_bin_get_child(GTK_BIN(s->full_screen_item))),
             GDK_KEY_f, HOTKEY_MODIFIERS);
+    gtk_accel_label_set_accel(
+            GTK_ACCEL_LABEL(gtk_bin_get_child(GTK_BIN(lock_menu_item))),
+            GDK_KEY_l, GDK_SUPER_MASK);
+    g_signal_connect(lock_menu_item, "activate",
+                     G_CALLBACK(gd_lock_vc), s);
 #endif
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->full_screen_item);
+    //gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), lock_menu_item);
 
     separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), separator);
@@ -2330,7 +2359,7 @@ static GtkWidget *gd_create_menu_view(GtkDisplayState *s)
     s->show_tabs_item = gtk_check_menu_item_new_with_mnemonic(_("Show _Tabs"));
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->show_tabs_item);
 
-    s->untabify_item = gtk_menu_item_new_with_mnemonic(_("Detach Tab"));
+    s->untabify_item = gtk_menu_item_new_with_mnemonic("Redo EGL stuff");
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->untabify_item);
 
     s->show_menubar_item = gtk_check_menu_item_new_with_mnemonic(

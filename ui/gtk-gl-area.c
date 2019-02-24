@@ -53,6 +53,7 @@ void gd_gl_area_draw(VirtualConsole *vc)
             return;
         }
 
+        //fprintf(stderr,"code path A\n");
         glBindFramebuffer(GL_READ_FRAMEBUFFER, vc->gfx.guest_fb.framebuffer);
         /* GtkGLArea sets GL_DRAW_FRAMEBUFFER for us */
 
