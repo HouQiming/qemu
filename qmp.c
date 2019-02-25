@@ -129,6 +129,12 @@ void qmp_cpu_add(int64_t id, Error **errp)
     }
 }
 
+extern int g_hidraw_enable;
+void qmp_hidraw_enable(int64_t enable, Error **errp)
+{
+	g_hidraw_enable=!!enable;
+}
+
 void qmp_x_exit_preconfig(Error **errp)
 {
     if (!runstate_check(RUN_STATE_PRECONFIG)) {

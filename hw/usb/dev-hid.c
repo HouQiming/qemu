@@ -670,6 +670,7 @@ static void usb_hid_handle_reset(USBDevice *dev)
     hid_reset(&us->hid);
 }
 
+int g_hidraw_enable=1;
 static int hidraw_poll(USBHIDState *us, uint8_t *data, int length){
 	//read the actual device, non-blockingly
 	if(us->fd_hidraw<=0){return 0;}
@@ -678,7 +679,7 @@ static int hidraw_poll(USBHIDState *us, uint8_t *data, int length){
 	us->hid.n=0;
     qemu_set_fd_handler(us->fd_hidraw,hidraw_changed,NULL,us);
 	int n_read=read(us->fd_hidraw,data,length);
-	return n_read>0?n_read:0;
+	return g_hidraw_enable&&n_read>0?n_read:0;
 }
 
 static void usb_hid_handle_control(USBDevice *dev, USBPacket *p,

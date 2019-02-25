@@ -3485,3 +3485,16 @@
   'data': 'NumaOptions',
   'allow-preconfig': true
 }
+
+##
+# @hidraw-enable:
+#
+# Enable / disable all hidraw devices
+#
+# @enable: 1 to enable, 0 to disable
+#
+# Since 3.0
+##
+{ 'command': 'hidraw-enable',
+  'data': { 'enable': 'int'} }
+

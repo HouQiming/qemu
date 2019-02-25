@@ -1538,27 +1538,24 @@ static void pc_superio_init(ISABus *isa_bus, bool create_fdctrl, bool no_vmport)
         fdctrl_init_isa(isa_bus, fd);
     }
 
-    if(0){
-        //don't create those devices
-        i8042 = isa_create_simple(isa_bus, "i8042");
-        if (!no_vmport) {
-            vmport_init(isa_bus);
-            vmmouse = isa_try_create(isa_bus, "vmmouse");
-        } else {
-            vmmouse = NULL;
-        }
-        if (vmmouse) {
-            DeviceState *dev = DEVICE(vmmouse);
-            qdev_prop_set_ptr(dev, "ps2_mouse", i8042);
-            qdev_init_nofail(dev);
-        }
-        port92 = isa_create_simple(isa_bus, "port92");
-	
-        a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 2);
-        i8042_setup_a20_line(i8042, a20_line[0]);
-        port92_init(port92, a20_line[1]);
-        g_free(a20_line);
+    i8042 = isa_create_simple(isa_bus, "i8042");
+    if (!no_vmport) {
+        vmport_init(isa_bus);
+        vmmouse = isa_try_create(isa_bus, "vmmouse");
+    } else {
+        vmmouse = NULL;
     }
+    if (vmmouse) {
+        DeviceState *dev = DEVICE(vmmouse);
+        qdev_prop_set_ptr(dev, "ps2_mouse", i8042);
+        qdev_init_nofail(dev);
+    }
+    port92 = isa_create_simple(isa_bus, "port92");
+
+    a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 2);
+    i8042_setup_a20_line(i8042, a20_line[0]);
+    port92_init(port92, a20_line[1]);
+    g_free(a20_line);
 }
 
 void pc_basic_device_init(ISABus *isa_bus, qemu_irq *gsi,
