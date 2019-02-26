@@ -151,6 +151,7 @@ typedef struct VFIOPCIDevice {
     OnOffAuto display;
     int32_t bootindex;
     uint32_t igd_gms;
+    uint32_t fb_width,fb_height;
     OffAutoPCIBAR msix_relo;
     uint8_t pm_cap;
     uint8_t nv_gpudirect_clique;

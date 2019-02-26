@@ -12,6 +12,7 @@
  */
 #include "qemu/osdep.h"
 #include "qapi/error.h"
+#include "qemu/option.h"
 #include "hw/loader.h"
 #include "hw/display/ramfb.h"
 #include "ui/console.h"
@@ -88,7 +89,7 @@ void ramfb_display_update(QemuConsole *con, RAMFBState *s)
     dpy_gfx_update_full(con);
 }
 
-RAMFBState *ramfb_setup(Error **errp)
+RAMFBState *ramfb_setup(DeviceState* dev, Error **errp)
 {
     FWCfgState *fw_cfg = fw_cfg_find();
     RAMFBState *s;
@@ -99,6 +100,11 @@ RAMFBState *ramfb_setup(Error **errp)
     }
 
     s = g_new0(RAMFBState, 1);
+    
+    const char* s_fb_width=qemu_opt_get(dev->opts, "fb_width");
+    const char* s_fb_height=qemu_opt_get(dev->opts, "fb_height");
+    if(s_fb_width){s->cfg.width=atoi(s_fb_width);}
+    if(s_fb_height){s->cfg.height=atoi(s_fb_height);}
 
     //rom_add_vga("vgabios-ramfb.bin");
     fw_cfg_add_file_callback(fw_cfg, "etc/ramfb",

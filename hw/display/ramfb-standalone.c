@@ -12,6 +12,7 @@ typedef struct RAMFBStandaloneState {
     SysBusDevice parent_obj;
     QemuConsole *con;
     RAMFBState *state;
+    uint32_t fb_width,fb_height;
 } RAMFBStandaloneState;
 
 static void display_update_wrapper(void *dev)
@@ -34,8 +35,14 @@ static void ramfb_realizefn(DeviceState *dev, Error **errp)
     RAMFBStandaloneState *ramfb = RAMFB(dev);
 
     ramfb->con = graphic_console_init(dev, 0, &wrapper_ops, dev);
-    ramfb->state = ramfb_setup(errp);
+    ramfb->state = ramfb_setup(dev,errp);
 }
+
+static Property ramfb_properties[] = {
+    DEFINE_PROP_UINT32("fb_width", RAMFBStandaloneState, fb_width, 0),
+    DEFINE_PROP_UINT32("fb_height", RAMFBStandaloneState, fb_height, 0),
+    DEFINE_PROP_END_OF_LIST(),
+};
 
 static void ramfb_class_initfn(ObjectClass *klass, void *data)
 {
@@ -43,6 +50,7 @@ static void ramfb_class_initfn(ObjectClass *klass, void *data)
 
     set_bit(DEVICE_CATEGORY_DISPLAY, dc->categories);
     dc->realize = ramfb_realizefn;
+    dc->props = ramfb_properties;
     dc->desc = "ram framebuffer standalone device";
     dc->user_creatable = true;
 }

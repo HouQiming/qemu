@@ -184,8 +184,9 @@ static int vfio_display_dmabuf_init(VFIOPCIDevice *vdev, Error **errp)
     vdev->dpy->con = graphic_console_init(DEVICE(vdev), 0,
                                           &vfio_display_dmabuf_ops,
                                           vdev);
-    if (strcmp(object_get_typename(OBJECT(vdev)), "vfio-pci-ramfb") == 0)
-        vdev->dpy->ramfb = ramfb_setup(errp);
+    if (strcmp(object_get_typename(OBJECT(vdev)), "vfio-pci-ramfb") == 0){
+        vdev->dpy->ramfb = ramfb_setup(DEVICE(vdev),errp);
+    }
     return 0;
 }
 
@@ -308,8 +309,9 @@ static int vfio_display_region_init(VFIOPCIDevice *vdev, Error **errp)
     vdev->dpy->con = graphic_console_init(DEVICE(vdev), 0,
                                           &vfio_display_region_ops,
                                           vdev);
-    if (strcmp(object_get_typename(OBJECT(vdev)), "vfio-pci-ramfb") == 0)
-        vdev->dpy->ramfb = ramfb_setup(errp);
+    if (strcmp(object_get_typename(OBJECT(vdev)), "vfio-pci-ramfb") == 0){
+        vdev->dpy->ramfb = ramfb_setup(DEVICE(vdev),errp);
+    }
     return 0;
 }
 
