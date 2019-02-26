@@ -29,13 +29,14 @@ struct QEMU_PACKED RAMFBCfg {
 struct RAMFBState {
     DisplaySurface *ds;
     uint32_t width, height;
+    hwaddr addr,length;
     struct RAMFBCfg cfg;
 };
 
 static void ramfb_fw_cfg_write(void *dev, off_t offset, size_t len)
 {
     RAMFBState *s = dev;
-    void *framebuffer;
+    //void *framebuffer;
     uint32_t fourcc, format;
     hwaddr stride, addr, length;
 
@@ -46,19 +47,26 @@ static void ramfb_fw_cfg_write(void *dev, off_t offset, size_t len)
     addr      = be64_to_cpu(s->cfg.addr);
     length    = stride * s->height;
     format    = qemu_drm_format_to_pixman(fourcc);
+    s->addr=addr;
+    s->length=length;
 
     fprintf(stderr, "%s: %dx%d @ 0x%" PRIx64 "\n", __func__,
             s->width, s->height, addr);
-    framebuffer = address_space_map(&address_space_memory,
-                                    addr, &length, false,
-                                    MEMTXATTRS_UNSPECIFIED);
-    if (!framebuffer || length < stride * s->height) {
-        s->width = 0;
-        s->height = 0;
-        return;
-    }
-    s->ds = qemu_create_displaysurface_from(s->width, s->height,
-                                            format, stride, framebuffer);
+    //framebuffer = address_space_map(&address_space_memory,
+    //                                addr, &length, false,
+    //                                MEMTXATTRS_UNSPECIFIED);
+    //if (!framebuffer || length < stride * s->height) {
+    //    s->width = 0;
+    //    s->height = 0;
+    //    return;
+    //}
+    //s->ds = qemu_create_displaysurface_from(s->width, s->height,
+    //                                        format, stride, framebuffer);
+    s->ds = qemu_create_displaysurface_guestmem(s->width, s->height,
+                                            format, stride, s->addr);
+    //void* framebuffer_x=(void*)calloc(1,length);
+    //s->ds = qemu_create_displaysurface_from(s->width, s->height,
+    //                                        format, stride, framebuffer_x);
 }
 
 void ramfb_display_update(QemuConsole *con, RAMFBState *s)
@@ -72,6 +80,10 @@ void ramfb_display_update(QemuConsole *con, RAMFBState *s)
         s->ds = NULL;
     }
 
+    //access is always valid...
+    //fprintf(stderr,"ramfb_display_update %Lx %Lx %d\n",(long long int)s->addr,(long long int)s->length,
+    //    !!address_space_access_valid(&address_space_memory,s->addr,s->length,false,MEMTXATTRS_UNSPECIFIED));
+    //return;
     /* simple full screen update */
     dpy_gfx_update_full(con);
 }
@@ -88,7 +100,7 @@ RAMFBState *ramfb_setup(Error **errp)
 
     s = g_new0(RAMFBState, 1);
 
-    rom_add_vga("vgabios-ramfb.bin");
+    //rom_add_vga("vgabios-ramfb.bin");
     fw_cfg_add_file_callback(fw_cfg, "etc/ramfb",
                              NULL, ramfb_fw_cfg_write, s,
                              &s->cfg, sizeof(s->cfg), false);
