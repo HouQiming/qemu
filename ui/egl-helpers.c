@@ -102,7 +102,6 @@ void egl_fb_blit(egl_fb *dst, egl_fb *src, bool flip)
     glBlitFramebuffer(0, y1, src->width, y2,
                       0, 0, dst->width, dst->height,
                       GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	fflush(stderr);
 }
 
 void egl_fb_read(void *dst, egl_fb *src)

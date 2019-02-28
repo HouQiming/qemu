@@ -63,7 +63,6 @@ void gd_egl_init(VirtualConsole *vc)
     assert(vc->gfx.esurface);
 }
 
-extern int g_egl_stuff_redo;
 void gd_egl_draw(VirtualConsole *vc)
 {
     GdkWindow *window;
@@ -79,19 +78,6 @@ void gd_egl_draw(VirtualConsole *vc)
         if (!vc->gfx.ds) {
             return;
         }
-        //if(g_egl_stuff_redo){
-        //    window = gtk_widget_get_window(vc->gfx.drawing_area);
-        //    #if GTK_CHECK_VERSION(3, 0, 0)
-        //        Window x11_window = gdk_x11_window_get_xid(window);
-        //    #else
-        //        Window x11_window = gdk_x11_drawable_get_xid(window);
-        //    #endif
-        //    EGLContext a = qemu_egl_init_ctx();
-        //    if(a){vc->gfx.ectx =a;}
-        //    EGLSurface b=qemu_egl_init_surface_x11(vc->gfx.ectx, x11_window);
-        //    if(b){vc->gfx.esurface =b;}
-        //    g_egl_stuff_redo=0;
-        //}
         eglMakeCurrent(qemu_egl_display, vc->gfx.esurface,
                        vc->gfx.esurface, vc->gfx.ectx);
 

@@ -1,5 +1,4 @@
 /*
- * GTK is buggy shit, without compositing it turns white
  * GTK UI
  *
  * Copyright IBM, Corp. 2012
@@ -515,7 +514,6 @@ static void gtk_release_modifiers(GtkDisplayState *s)
     }
 }
 
-/*
 static void gd_widget_reparent(GtkWidget *from, GtkWidget *to,
                                GtkWidget *widget)
 {
@@ -524,7 +522,6 @@ static void gd_widget_reparent(GtkWidget *from, GtkWidget *to,
     gtk_container_add(GTK_CONTAINER(to), widget);
     g_object_unref(G_OBJECT(widget));
 }
-*/
 
 /** DisplayState Callbacks **/
 
@@ -1361,7 +1358,6 @@ static void gd_menu_show_tabs(GtkMenuItem *item, void *opaque)
     gd_update_windowsize(vc);
 }
 
-/*
 static gboolean gd_tab_window_close(GtkWidget *widget, GdkEvent *event,
                                     void *opaque)
 {
@@ -1389,13 +1385,9 @@ static gboolean gd_win_grab(void *opaque)
     }
     return TRUE;
 }
-*/
 
-int g_egl_stuff_redo=0;
 static void gd_menu_untabify(GtkMenuItem *item, void *opaque)
 {
-    g_egl_stuff_redo=1;
-    /*
     GtkDisplayState *s = opaque;
     VirtualConsole *vc = gd_vc_find_current(s);
 
@@ -1425,7 +1417,6 @@ static void gd_menu_untabify(GtkMenuItem *item, void *opaque)
         gd_update_geometry_hints(vc);
         gd_update_caption(s);
     }
-    */
 }
 
 static void gd_menu_show_menubar(GtkMenuItem *item, void *opaque)
@@ -1492,13 +1483,13 @@ static void gd_accel_full_screen(void *opaque)
 static void gd_accel_lock(void *opaque)
 {
 	gd_accel_full_screen(opaque);
-	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' hqm");
+	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' `id -un 1000`");
 	a=a;
 }
 
 static void gd_lock_vc(GtkMenuItem *item, void *opaque)
 {
-	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' hqm");
+	int a=system("su -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock' `id -un 1000`");
 	a=a;
 }
 
@@ -2359,7 +2350,7 @@ static GtkWidget *gd_create_menu_view(GtkDisplayState *s)
     s->show_tabs_item = gtk_check_menu_item_new_with_mnemonic(_("Show _Tabs"));
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->show_tabs_item);
 
-    s->untabify_item = gtk_menu_item_new_with_mnemonic("Redo EGL stuff");
+    s->untabify_item = gtk_menu_item_new_with_mnemonic(_("Detach Tab"));
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->untabify_item);
 
     s->show_menubar_item = gtk_check_menu_item_new_with_mnemonic(
