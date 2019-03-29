@@ -1262,8 +1262,12 @@ int vfio_pci_igd_opregion_init(VFIOPCIDevice *vdev,
     vdev->igd_opregion = g_malloc0(info->size);
     ret = pread(vdev->vbasedev.fd, vdev->igd_opregion,
                 info->size, info->offset);
+    
     //fprintf(stderr,"ret=%d\n",ret);
-    //fwrite(vdev->igd_opregion,1,ret,stderr);
+    //FILE* f=fopen("/home/hqm/gpdvm/data/log/opregion.bin","w");
+    //fwrite(vdev->igd_opregion,1,ret,f);
+    //fclose(f);
+    
     if (ret != info->size) {
         error_setg(errp, "failed to read IGD OpRegion");
         g_free(vdev->igd_opregion);

@@ -116,6 +116,8 @@ void gd_egl_update(DisplayChangeListener *dcl,
         return;
     }
 
+    //fprintf(stderr,"surface_gl_update_texture %d %d\n",w,h);
+    //fflush(stderr);
     eglMakeCurrent(qemu_egl_display, vc->gfx.esurface,
                    vc->gfx.esurface, vc->gfx.ectx);
     surface_gl_update_texture(vc->gfx.gls, vc->gfx.ds, x, y, w, h);
@@ -274,7 +276,8 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
     if (!vc->gfx.scanout_mode) {
         return;
     }
-    if (!vc->gfx.guest_fb.framebuffer) {
+    //if (!vc->gfx.guest_fb.framebuffer)
+    if (!vc->gfx.guest_fb.texture) {
         return;
     }
 
@@ -309,7 +312,9 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
                           vc->gfx.y0_top,
                           vc->gfx.cursor_x*ww/(vc->gfx.w?vc->gfx.w:1), vc->gfx.cursor_y*wh/(vc->gfx.h?vc->gfx.h:1));
     } else {
-        egl_fb_blit(&vc->gfx.win_fb, &vc->gfx.guest_fb, !vc->gfx.y0_top);
+        //egl_fb_blit(&vc->gfx.win_fb, &vc->gfx.guest_fb, !vc->gfx.y0_top);
+        egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
+                         vc->gfx.y0_top);
     }
 
     eglSwapBuffers(qemu_egl_display, vc->gfx.esurface);

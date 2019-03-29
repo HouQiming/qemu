@@ -193,6 +193,9 @@ static DisplayState *get_alloc_displaystate(void);
 static void text_console_update_cursor_timer(void);
 static void text_console_update_cursor(void *opaque);
 
+//#define GUI_REFRESH_INTERVAL_UNIT 16
+#define GUI_REFRESH_INTERVAL_UNIT 33
+
 static void gui_update(void *opaque)
 {
     uint64_t interval = GUI_REFRESH_INTERVAL_IDLE;
@@ -200,14 +203,15 @@ static void gui_update(void *opaque)
     DisplayState *ds = opaque;
     DisplayChangeListener *dcl;
     QemuConsole *con;
+    int64_t t0,t1;
 
     ds->refreshing = true;
+    t0 = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
     dpy_refresh(ds);
-    ds->refreshing = false;
 
     QLIST_FOREACH(dcl, &ds->listeners, next) {
         dcl_interval = dcl->update_interval ?
-            dcl->update_interval : GUI_REFRESH_INTERVAL_DEFAULT;
+            dcl->update_interval : GUI_REFRESH_INTERVAL_UNIT;
         if (interval > dcl_interval) {
             interval = dcl_interval;
         }
@@ -221,8 +225,21 @@ static void gui_update(void *opaque)
         }
         trace_console_refresh(interval);
     }
-    ds->last_update = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
-    timer_mod(ds->gui_timer, ds->last_update + interval);
+    t1 = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
+
+    int64_t dt=t1-t0;
+    if(interval<dt*2){
+        //adjust the frame rate so that update-only GPU consumption is at most 50%
+        interval=dt*2;
+    }
+    //sync to 30fps boundaries
+    interval=(interval+(GUI_REFRESH_INTERVAL_UNIT-1))/GUI_REFRESH_INTERVAL_UNIT*GUI_REFRESH_INTERVAL_UNIT;
+    
+    //and maintaining a correct frame rate requires timer_mod to be based on t0
+    ds->last_update = t1;
+    timer_mod(ds->gui_timer, t0 + interval);
+
+    ds->refreshing = false;
 }
 
 static void gui_setup_refresh(DisplayState *ds)
@@ -2283,6 +2300,9 @@ void qemu_console_resize(QemuConsole *s, int width, int height)
         pixman_image_get_height(s->surface->image) == height) {
         return;
     }
+    
+    //fprintf(stderr,"resize %d %d\n",width,height);
+    //fflush(stderr);
 
     surface = qemu_create_displaysurface(width, height);
     dpy_gfx_replace_surface(s, surface);

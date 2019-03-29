@@ -118,6 +118,9 @@ void egl_texture_blit(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip)
     glViewport(0, 0, dst->width, dst->height);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, src->texture);
+    glDisable(GL_BLEND);
+    //fprintf(stderr,"blit %d <= %d\n",dst->framebuffer,src->texture);
+    //fflush(stderr);
     qemu_gl_run_texture_blit(gls, flip);
 }
 
@@ -301,6 +304,10 @@ void egl_dmabuf_import_texture(QemuDmaBuf *dmabuf)
     glBindTexture(GL_TEXTURE_2D, dmabuf->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //fprintf(stderr,"egl_dmabuf_import_texture %d %d => %d\n",dmabuf->width,dmabuf->height,dmabuf->texture);
+    //fflush(stderr);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)image);
     eglDestroyImageKHR(qemu_egl_display, image);
