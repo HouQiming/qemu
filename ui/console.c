@@ -193,8 +193,8 @@ static DisplayState *get_alloc_displaystate(void);
 static void text_console_update_cursor_timer(void);
 static void text_console_update_cursor(void *opaque);
 
-//#define GUI_REFRESH_INTERVAL_UNIT 16
-#define GUI_REFRESH_INTERVAL_UNIT 33
+#define GUI_REFRESH_INTERVAL_UNIT 16
+//#define GUI_REFRESH_INTERVAL_UNIT 33
 
 static void gui_update(void *opaque)
 {

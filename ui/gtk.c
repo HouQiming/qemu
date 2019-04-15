@@ -1493,70 +1493,70 @@ static void gd_lock_vc(GtkMenuItem *item, void *opaque)
 	a=a;
 }
 
-static void gd_menu_zoom_in(GtkMenuItem *item, void *opaque)
-{
-    GtkDisplayState *s = opaque;
-    VirtualConsole *vc = gd_vc_find_current(s);
+//static void gd_menu_zoom_in(GtkMenuItem *item, void *opaque)
+//{
+//    GtkDisplayState *s = opaque;
+//    VirtualConsole *vc = gd_vc_find_current(s);
 
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item),
-                                   FALSE);
+//    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item),
+//                                   FALSE);
 
-    vc->gfx.scale_x += VC_SCALE_STEP;
-    vc->gfx.scale_y += VC_SCALE_STEP;
+//    vc->gfx.scale_x += VC_SCALE_STEP;
+//    vc->gfx.scale_y += VC_SCALE_STEP;
 
-    gd_update_windowsize(vc);
-}
+//    gd_update_windowsize(vc);
+//}
 
-static void gd_accel_zoom_in(void *opaque)
-{
-    GtkDisplayState *s = opaque;
-    gtk_menu_item_activate(GTK_MENU_ITEM(s->zoom_in_item));
-}
+//static void gd_accel_zoom_in(void *opaque)
+//{
+//    GtkDisplayState *s = opaque;
+//    gtk_menu_item_activate(GTK_MENU_ITEM(s->zoom_in_item));
+//}
 
-static void gd_menu_zoom_out(GtkMenuItem *item, void *opaque)
-{
-    GtkDisplayState *s = opaque;
-    VirtualConsole *vc = gd_vc_find_current(s);
+//static void gd_menu_zoom_out(GtkMenuItem *item, void *opaque)
+//{
+//    GtkDisplayState *s = opaque;
+//    VirtualConsole *vc = gd_vc_find_current(s);
 
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item),
-                                   FALSE);
+//    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item),
+//                                   FALSE);
 
-    vc->gfx.scale_x -= VC_SCALE_STEP;
-    vc->gfx.scale_y -= VC_SCALE_STEP;
+//    vc->gfx.scale_x -= VC_SCALE_STEP;
+//    vc->gfx.scale_y -= VC_SCALE_STEP;
 
-    vc->gfx.scale_x = MAX(vc->gfx.scale_x, VC_SCALE_MIN);
-    vc->gfx.scale_y = MAX(vc->gfx.scale_y, VC_SCALE_MIN);
+//    vc->gfx.scale_x = MAX(vc->gfx.scale_x, VC_SCALE_MIN);
+//    vc->gfx.scale_y = MAX(vc->gfx.scale_y, VC_SCALE_MIN);
 
-    gd_update_windowsize(vc);
-}
+//    gd_update_windowsize(vc);
+//}
 
-static void gd_menu_zoom_fixed(GtkMenuItem *item, void *opaque)
-{
-    GtkDisplayState *s = opaque;
-    VirtualConsole *vc = gd_vc_find_current(s);
+//static void gd_menu_zoom_fixed(GtkMenuItem *item, void *opaque)
+//{
+//    GtkDisplayState *s = opaque;
+//    VirtualConsole *vc = gd_vc_find_current(s);
 
-    vc->gfx.scale_x = 1.0;
-    vc->gfx.scale_y = 1.0;
+//    vc->gfx.scale_x = 1.0;
+//    vc->gfx.scale_y = 1.0;
 
-    gd_update_windowsize(vc);
-}
+//    gd_update_windowsize(vc);
+//}
 
-static void gd_menu_zoom_fit(GtkMenuItem *item, void *opaque)
-{
-    GtkDisplayState *s = opaque;
-    VirtualConsole *vc = gd_vc_find_current(s);
+//static void gd_menu_zoom_fit(GtkMenuItem *item, void *opaque)
+//{
+//    GtkDisplayState *s = opaque;
+//    VirtualConsole *vc = gd_vc_find_current(s);
 
-    if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item))) {
-        s->free_scale = TRUE;
-    } else {
-        s->free_scale = FALSE;
-        vc->gfx.scale_x = 1.0;
-        vc->gfx.scale_y = 1.0;
-    }
+//    if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(s->zoom_fit_item))) {
+//        s->free_scale = TRUE;
+//    } else {
+//        s->free_scale = FALSE;
+//        vc->gfx.scale_x = 1.0;
+//        vc->gfx.scale_y = 1.0;
+//    }
 
-    gd_update_windowsize(vc);
-    gd_update_full_redraw(vc);
-}
+//    gd_update_windowsize(vc);
+//    gd_update_full_redraw(vc);
+//}
 
 #if GTK_CHECK_VERSION(3, 20, 0)
 static void gd_grab_update(VirtualConsole *vc, bool kbd, bool ptr)
@@ -2125,14 +2125,14 @@ static void gd_connect_signals(GtkDisplayState *s)
 #endif
     g_signal_connect(s->full_screen_item, "activate",
                      G_CALLBACK(gd_menu_full_screen), s);
-    g_signal_connect(s->zoom_in_item, "activate",
-                     G_CALLBACK(gd_menu_zoom_in), s);
-    g_signal_connect(s->zoom_out_item, "activate",
-                     G_CALLBACK(gd_menu_zoom_out), s);
-    g_signal_connect(s->zoom_fixed_item, "activate",
-                     G_CALLBACK(gd_menu_zoom_fixed), s);
-    g_signal_connect(s->zoom_fit_item, "activate",
-                     G_CALLBACK(gd_menu_zoom_fit), s);
+    //g_signal_connect(s->zoom_in_item, "activate",
+    //                 G_CALLBACK(gd_menu_zoom_in), s);
+    //g_signal_connect(s->zoom_out_item, "activate",
+    //                 G_CALLBACK(gd_menu_zoom_out), s);
+    //g_signal_connect(s->zoom_fixed_item, "activate",
+    //                 G_CALLBACK(gd_menu_zoom_fixed), s);
+    //g_signal_connect(s->zoom_fit_item, "activate",
+    //                 G_CALLBACK(gd_menu_zoom_fit), s);
     g_signal_connect(s->grab_item, "activate",
                      G_CALLBACK(gd_menu_grab_input), s);
     g_signal_connect(s->notebook, "switch-page",
@@ -2287,20 +2287,20 @@ static GtkWidget *gd_create_menu_view(GtkDisplayState *s)
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), separator);
 
     s->zoom_in_item = gtk_menu_item_new_with_mnemonic(_("Zoom _In"));
-    gtk_menu_item_set_accel_path(GTK_MENU_ITEM(s->zoom_in_item),
-                                 "<QEMU>/View/Zoom In");
-    gtk_accel_map_add_entry("<QEMU>/View/Zoom In", GDK_KEY_plus,
-                            HOTKEY_MODIFIERS);
-    gtk_accel_group_connect(s->accel_group, GDK_KEY_equal, HOTKEY_MODIFIERS, 0,
-            g_cclosure_new_swap(G_CALLBACK(gd_accel_zoom_in), s, NULL));
-    gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->zoom_in_item);
+    //gtk_menu_item_set_accel_path(GTK_MENU_ITEM(s->zoom_in_item),
+    //                             "<QEMU>/View/Zoom In");
+    //gtk_accel_map_add_entry("<QEMU>/View/Zoom In", GDK_KEY_plus,
+    //                        HOTKEY_MODIFIERS);
+    //gtk_accel_group_connect(s->accel_group, GDK_KEY_equal, HOTKEY_MODIFIERS, 0,
+    //        g_cclosure_new_swap(G_CALLBACK(gd_accel_zoom_in), s, NULL));
+    //gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->zoom_in_item);
 
     s->zoom_out_item = gtk_menu_item_new_with_mnemonic(_("Zoom _Out"));
-    gtk_menu_item_set_accel_path(GTK_MENU_ITEM(s->zoom_out_item),
-                                 "<QEMU>/View/Zoom Out");
-    gtk_accel_map_add_entry("<QEMU>/View/Zoom Out", GDK_KEY_minus,
-                            HOTKEY_MODIFIERS);
-    gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->zoom_out_item);
+    //gtk_menu_item_set_accel_path(GTK_MENU_ITEM(s->zoom_out_item),
+    //                             "<QEMU>/View/Zoom Out");
+    //gtk_accel_map_add_entry("<QEMU>/View/Zoom Out", GDK_KEY_minus,
+    //                        HOTKEY_MODIFIERS);
+    //gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->zoom_out_item);
 
     s->zoom_fixed_item = gtk_menu_item_new_with_mnemonic(_("Best _Fit"));
     gtk_menu_item_set_accel_path(GTK_MENU_ITEM(s->zoom_fixed_item),

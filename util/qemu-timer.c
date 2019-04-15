@@ -237,6 +237,9 @@ int64_t timerlist_deadline_ns(QEMUTimerList *timer_list)
         return -1;
     }
     expire_time = timer_list->active_timers->expire_time;
+    //if(expire_time - qemu_clock_get_ns(timer_list->clock->type)<2000000LL){
+    //	fprintf(stderr,"timeout: %.3lfms %p\n",(double)(expire_time - qemu_clock_get_ns(timer_list->clock->type))/1.0e6,timer_list->active_timers->cb);
+    //}
     qemu_mutex_unlock(&timer_list->active_timers_lock);
 
     delta = expire_time - qemu_clock_get_ns(timer_list->clock->type);

@@ -195,7 +195,7 @@ periodic_timer_update(RTCState *s, int64_t current_time, uint32_t old_period)
     int64_t cur_clock, next_irq_clock, lost_clock = 0;
 
     period = rtc_periodic_clock_ticks(s);
-
+    
     if (period) {
         /* compute 32 khz clock */
         cur_clock =

@@ -142,8 +142,8 @@ const char* keyboard_layout = NULL;
 ram_addr_t ram_size;
 const char *mem_path = NULL;
 int mem_prealloc = 0; /* force preallocation of physical target memory */
-bool enable_mlock = false;
-bool enable_cpu_pm = false;
+bool enable_mlock = true;
+bool enable_cpu_pm = true;
 int nb_nics;
 NICInfo nd_table[MAX_NICS];
 int autostart;

@@ -32,27 +32,39 @@ struct RAMFBState {
     uint32_t width, height;
     hwaddr addr,length;
     struct RAMFBCfg cfg;
+    bool locked;
 };
 
 static void ramfb_fw_cfg_write(void *dev, off_t offset, size_t len)
 {
     RAMFBState *s = dev;
     //void *framebuffer;
-    uint32_t fourcc, format;
+    uint32_t fourcc, format, width, height;
     hwaddr stride, addr, length;
 
-    s->width  = be32_to_cpu(s->cfg.width);
-    s->height = be32_to_cpu(s->cfg.height);
+    width  = be32_to_cpu(s->cfg.width);
+    height = be32_to_cpu(s->cfg.height);
     stride    = be32_to_cpu(s->cfg.stride);
     fourcc    = be32_to_cpu(s->cfg.fourcc);
     addr      = be64_to_cpu(s->cfg.addr);
     length    = stride * s->height;
     format    = qemu_drm_format_to_pixman(fourcc);
-    s->addr=addr;
-    s->length=length;
 
     fprintf(stderr, "%s: %dx%d @ 0x%" PRIx64 "\n", __func__,
-            s->width, s->height, addr);
+            width, height, addr);
+    if((uint32_t)width>4096u||(uint32_t)stride>16384u||(uint32_t)height>4096u){
+        fprintf(stderr, "%s: >4K, change rejected\n", __func__);
+        return;
+    }
+    if(s->locked){
+        fprintf(stderr, "%s: resolution locked, change rejected\n", __func__);
+        return;
+    }
+    s->locked=true;
+    s->addr=addr;
+    s->length=length;
+    s->width=width;
+    s->height=height;
     //framebuffer = address_space_map(&address_space_memory,
     //                                addr, &length, false,
     //                                MEMTXATTRS_UNSPECIFIED);
@@ -105,6 +117,7 @@ RAMFBState *ramfb_setup(DeviceState* dev, Error **errp)
     const char* s_fb_height=qemu_opt_get(dev->opts, "fb_height");
     if(s_fb_width){s->cfg.width=atoi(s_fb_width);}
     if(s_fb_height){s->cfg.height=atoi(s_fb_height);}
+    s->locked=false;
 
     //rom_add_vga("vgabios-ramfb.bin");
     fw_cfg_add_file_callback(fw_cfg, "etc/ramfb",
