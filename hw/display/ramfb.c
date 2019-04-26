@@ -30,6 +30,7 @@ struct QEMU_PACKED RAMFBCfg {
 struct RAMFBState {
     DisplaySurface *ds;
     uint32_t width, height;
+    uint32_t starting_width, starting_height;
     hwaddr addr,length;
     struct RAMFBCfg cfg;
     bool locked;
@@ -101,6 +102,15 @@ void ramfb_display_update(QemuConsole *con, RAMFBState *s)
     dpy_gfx_update_full(con);
 }
 
+static void ramfb_reset(void *opaque)
+{
+    RAMFBState* s =  (RAMFBState*)opaque;
+    s->locked=0;
+    memset(&s->cfg,0,sizeof(s->cfg));
+    s->cfg.width=s->starting_width;
+    s->cfg.height=s->starting_height;
+}
+
 RAMFBState *ramfb_setup(DeviceState* dev, Error **errp)
 {
     FWCfgState *fw_cfg = fw_cfg_find();
@@ -115,13 +125,14 @@ RAMFBState *ramfb_setup(DeviceState* dev, Error **errp)
     
     const char* s_fb_width=qemu_opt_get(dev->opts, "fb_width");
     const char* s_fb_height=qemu_opt_get(dev->opts, "fb_height");
-    if(s_fb_width){s->cfg.width=atoi(s_fb_width);}
-    if(s_fb_height){s->cfg.height=atoi(s_fb_height);}
+    if(s_fb_width){s->cfg.width=atoi(s_fb_width);s->starting_width=s->cfg.width;}
+    if(s_fb_height){s->cfg.height=atoi(s_fb_height);s->starting_height=s->cfg.height;}
     s->locked=false;
 
     //rom_add_vga("vgabios-ramfb.bin");
     fw_cfg_add_file_callback(fw_cfg, "etc/ramfb",
                              NULL, ramfb_fw_cfg_write, s,
                              &s->cfg, sizeof(s->cfg), false);
+    qemu_register_reset(ramfb_reset,s);
     return s;
 }
