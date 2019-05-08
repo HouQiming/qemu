@@ -1838,6 +1838,16 @@ void dpy_gl_scanout_dmabuf(QemuConsole *con,
     con->gl->ops->dpy_gl_scanout_dmabuf(con->gl, dmabuf);
 }
 
+void dpy_gl_overlay_dmabuf(QemuConsole *con,
+                           QemuDmaBuf *dmabuf,
+                           int x, int y)
+{
+    assert(con->gl);
+    if(con->gl->ops->dpy_gl_overlay_dmabuf){
+    	con->gl->ops->dpy_gl_overlay_dmabuf(con->gl, dmabuf, x, y);
+    }
+}
+
 void dpy_gl_cursor_dmabuf(QemuConsole *con, QemuDmaBuf *dmabuf,
                           bool have_hot, uint32_t hot_x, uint32_t hot_y)
 {

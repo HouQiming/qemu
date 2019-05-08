@@ -69,13 +69,16 @@ void egl_fb_setup_for_tex(egl_fb *fb, int width, int height,
     fb->height = height;
     fb->texture = texture;
     fb->delete_texture = delete;
-    if (!fb->framebuffer) {
-        glGenFramebuffers(1, &fb->framebuffer);
-    }
+    
+    //the whole framebuffer idea is dumb, besides, GL_TEXTURE_EXTERNAL_OES doesn't support that
+    
+    //if (!fb->framebuffer) {
+    //    glGenFramebuffers(1, &fb->framebuffer);
+    //}
 
-    glBindFramebuffer(GL_FRAMEBUFFER_EXT, fb->framebuffer);
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-                              GL_TEXTURE_2D, fb->texture, 0);
+    //glBindFramebuffer(GL_FRAMEBUFFER_EXT, fb->framebuffer);
+    //glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+    //                          GL_TEXTURE_2D, fb->texture, 0);
 }
 
 void egl_fb_setup_new_tex(egl_fb *fb, int width, int height)
@@ -119,12 +122,17 @@ void egl_texture_blit(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip)
     //glEnable(GL_TEXTURE_2D);
     //glBindTexture(GL_TEXTURE_2D, src->texture);
     //glEnable(GL_TEXTURE_EXTERNAL_OES);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
     glDisable(GL_BLEND);
+    if (qemu_egl_mode == DISPLAYGL_MODE_ES) {
+    	glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
+	    qemu_gl_run_texture_blit(gls + 1, flip);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, src->texture);
+	    qemu_gl_run_texture_blit(gls, flip);
+    }
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     //fprintf(stderr,"blit %d <= %d\n",dst->framebuffer,src->texture);
     //fflush(stderr);
-    qemu_gl_run_texture_blit(gls + 1, flip);
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
 }
 
@@ -142,11 +150,16 @@ void egl_texture_blend(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip,
     //glBindTexture(GL_TEXTURE_2D, src->texture);
     //glEnable(GL_TEXTURE_EXTERNAL_OES);
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
-    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    qemu_gl_run_texture_blit(gls + 1, flip);
+    if (qemu_egl_mode == DISPLAYGL_MODE_ES) {
+    	glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
+    	qemu_gl_run_texture_blit(gls + 1, flip);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, src->texture);
+	    qemu_gl_run_texture_blit(gls, flip);
+    }
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     glDisable(GL_BLEND);
 }
@@ -328,12 +341,19 @@ void egl_dmabuf_import_texture(QemuDmaBuf *dmabuf)
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)image);
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, dmabuf->texture);
-    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)image);
-    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (qemu_egl_mode == DISPLAYGL_MODE_ES) {
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, dmabuf->texture);
+        //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)image);
+        //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, dmabuf->texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)image);
+    }
     //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     //fprintf(stderr,"egl_dmabuf_import_texture %d %d => %d\n",dmabuf->width,dmabuf->height,dmabuf->texture);
     //fflush(stderr);

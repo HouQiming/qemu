@@ -52,7 +52,9 @@ typedef struct VirtualGfxConsole {
     EGLSurface esurface;
     int glupdates;
     int x, y, w, h;
+    int overlay_x, overlay_y, overlay_w, overlay_h;
     egl_fb guest_fb;
+    egl_fb guest_2nd_fb;
     egl_fb win_fb;
     egl_fb cursor_fb;
     int cursor_x;
@@ -116,8 +118,18 @@ void gd_egl_scanout_texture(DisplayChangeListener *dcl,
                             uint32_t backing_height,
                             uint32_t x, uint32_t y,
                             uint32_t w, uint32_t h);
+void gd_egl_overlay_texture(DisplayChangeListener *dcl,
+                            uint32_t backing_id,
+                            bool backing_y_0_top,
+                            uint32_t backing_width,
+                            uint32_t backing_height,
+                            uint32_t x, uint32_t y,
+                            uint32_t w, uint32_t h);
 void gd_egl_scanout_dmabuf(DisplayChangeListener *dcl,
                            QemuDmaBuf *dmabuf);
+void gd_egl_overlay_dmabuf(DisplayChangeListener *dcl,
+                           QemuDmaBuf *dmabuf,
+                           int x, int y);
 void gd_egl_cursor_dmabuf(DisplayChangeListener *dcl,
                           QemuDmaBuf *dmabuf, bool have_hot,
                           uint32_t hot_x, uint32_t hot_y);

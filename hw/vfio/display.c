@@ -40,8 +40,19 @@ static void vfio_display_update_cursor(VFIODMABuf *dmabuf,
     }
 }
 
+static void vfio_display_update_overlay(VFIODMABuf *dmabuf,
+                                       struct vfio_device_gfx_plane_info *plane)
+{
+    if (dmabuf->pos_x != plane->x_pos || dmabuf->pos_y != plane->y_pos) {
+        dmabuf->pos_x      = plane->x_pos;
+        dmabuf->pos_y      = plane->y_pos;
+        dmabuf->pos_updates++;
+    }
+}
+
 static VFIODMABuf *vfio_display_get_dmabuf(VFIOPCIDevice *vdev,
-                                           uint32_t plane_type)
+                                           uint32_t plane_type,
+                                           uint32_t pipe_index)
 {
     VFIODisplay *dpy = vdev->dpy;
     struct vfio_device_gfx_plane_info plane;
@@ -52,11 +63,14 @@ static VFIODMABuf *vfio_display_get_dmabuf(VFIOPCIDevice *vdev,
     plane.argsz = sizeof(plane);
     plane.flags = VFIO_GFX_PLANE_TYPE_DMABUF;
     plane.drm_plane_type = plane_type;
+    plane.region_index = pipe_index;
     ret = ioctl(vdev->vbasedev.fd, VFIO_DEVICE_QUERY_GFX_PLANE, &plane);
     if (ret < 0) {
+        //fprintf(stderr,"%s:%d: #%d error %d\n",__FILE__,__LINE__,plane.region_index,ret);
         return NULL;
     }
     if (!plane.drm_format || !plane.size) {
+        //fprintf(stderr,"%s:%d: #%d format - size %d %d\n",__FILE__,__LINE__,plane.region_index,plane.drm_format, plane.size);
         return NULL;
     }
 
@@ -65,8 +79,11 @@ static VFIODMABuf *vfio_display_get_dmabuf(VFIOPCIDevice *vdev,
             /* found in list, move to head, return it */
             QTAILQ_REMOVE(&dpy->dmabuf.bufs, dmabuf, next);
             QTAILQ_INSERT_HEAD(&dpy->dmabuf.bufs, dmabuf, next);
-            if (plane_type == DRM_PLANE_TYPE_CURSOR) {
-                vfio_display_update_cursor(dmabuf, &plane);
+            //primary buffers need to update offsets
+            if(plane_type==DRM_PLANE_TYPE_CURSOR){
+            	vfio_display_update_cursor(dmabuf, &plane);
+            }else{
+                vfio_display_update_overlay(dmabuf, &plane);
             }
             return dmabuf;
         }
@@ -74,6 +91,7 @@ static VFIODMABuf *vfio_display_get_dmabuf(VFIOPCIDevice *vdev,
 
     fd = ioctl(vdev->vbasedev.fd, VFIO_DEVICE_GET_GFX_DMABUF, &plane.dmabuf_id);
     if (fd < 0) {
+        //fprintf(stderr,"%s:%d: no fd %d\n",__FILE__,__LINE__,fd);
         return NULL;
     }
 
@@ -84,8 +102,10 @@ static VFIODMABuf *vfio_display_get_dmabuf(VFIOPCIDevice *vdev,
     dmabuf->buf.stride = plane.stride;
     dmabuf->buf.fourcc = plane.drm_format;
     dmabuf->buf.fd     = fd;
-    if (plane_type == DRM_PLANE_TYPE_CURSOR) {
-        vfio_display_update_cursor(dmabuf, &plane);
+    if(plane_type==DRM_PLANE_TYPE_CURSOR){
+    	vfio_display_update_cursor(dmabuf, &plane);
+    }else{
+        vfio_display_update_overlay(dmabuf, &plane);
     }
 
     QTAILQ_INSERT_HEAD(&dpy->dmabuf.bufs, dmabuf, next);
@@ -104,7 +124,8 @@ static void vfio_display_free_dmabufs(VFIOPCIDevice *vdev)
 {
     VFIODisplay *dpy = vdev->dpy;
     VFIODMABuf *dmabuf, *tmp;
-    uint32_t keep = 5;
+    //3*primary, 3*overlay, 3*cursor
+    uint32_t keep = 9;
 
     QTAILQ_FOREACH_SAFE(dmabuf, &dpy->dmabuf.bufs, next, tmp) {
         if (keep > 0) {
@@ -120,10 +141,43 @@ static void vfio_display_dmabuf_update(void *opaque)
 {
     VFIOPCIDevice *vdev = opaque;
     VFIODisplay *dpy = vdev->dpy;
-    VFIODMABuf *primary, *cursor;
+    VFIODMABuf *primary, *primary_2nd, *cursor;
     bool free_bufs = false, new_cursor = false, updated_any=false;
 
-    primary = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_PRIMARY);
+    primary = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_PRIMARY, 0);
+    primary_2nd = NULL;
+    //primary_2nd = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_PRIMARY, 1);
+    ////if(!primary_2nd){primary_2nd = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_PRIMARY, 2);}
+    ////if(!primary_2nd){primary_2nd = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_PRIMARY, 3);}
+    ////fprintf(stderr,"%s:%d: %p ~ %p\n",__FILE__,__LINE__,primary,primary_2nd);fflush(stderr);
+    ////if(primary){
+    ////    fprintf(stderr,"%s:%d: ofs %d %d\n",__FILE__,__LINE__,primary->pos_x,primary->pos_y);fflush(stderr);
+    ////}
+    
+    //if (primary_2nd == primary) {
+    //    //unsupported kernel
+    //    primary_2nd = NULL;
+    //}
+    //if (primary && primary_2nd && (primary->buf.width < primary_2nd->buf.width || primary->buf.height < primary_2nd->buf.height)) {
+    //    VFIODMABuf *tmp = primary;
+    //    primary = primary_2nd;
+    //    primary_2nd = tmp;
+    //}
+    if(primary&&dpy->dmabuf.primary&&(primary->buf.fourcc==0x56595559||primary->buf.fourcc==0x59565955)){
+        VFIODMABuf *dmabuf;
+        //hack: a YUV thing is always an overlay buffer, if primary is that, it means the rest of the screen stays the same
+        primary_2nd=primary;
+        primary=dpy->dmabuf.primary;
+        //need MTF to prevent freeing
+        QTAILQ_FOREACH(dmabuf, &dpy->dmabuf.bufs, next) {
+            if (dmabuf == primary) {
+                QTAILQ_REMOVE(&dpy->dmabuf.bufs, dmabuf, next);
+                QTAILQ_INSERT_HEAD(&dpy->dmabuf.bufs, dmabuf, next);
+                break;
+            }
+        }
+    }
+
     if (primary == NULL) {
         if (dpy->ramfb) {
             ramfb_display_update(dpy->con, dpy->ramfb);
@@ -140,7 +194,19 @@ static void vfio_display_dmabuf_update(void *opaque)
         updated_any = true;
     }
 
-    cursor = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_CURSOR);
+    if (dpy->dmabuf.primary_2nd != primary_2nd || ( primary_2nd && primary_2nd->pos_updates ) ) {
+        dpy->dmabuf.primary_2nd = primary_2nd;
+        if(primary_2nd){
+            primary_2nd->pos_updates = 0;
+            dpy_gl_overlay_dmabuf(dpy->con, &primary_2nd->buf, primary_2nd->pos_x, primary_2nd->pos_y);
+        }else{
+            dpy_gl_overlay_dmabuf(dpy->con, NULL, 0, 0);
+        }
+        free_bufs = true;
+        updated_any = true;
+    }
+
+    cursor = vfio_display_get_dmabuf(vdev, DRM_PLANE_TYPE_CURSOR, 0);
     if (dpy->dmabuf.cursor != cursor) {
         dpy->dmabuf.cursor = cursor;
         new_cursor = true;

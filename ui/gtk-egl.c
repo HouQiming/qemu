@@ -214,6 +214,24 @@ void gd_egl_scanout_texture(DisplayChangeListener *dcl,
                          backing_id, false);
 }
 
+void gd_egl_overlay_texture(DisplayChangeListener *dcl,
+                            uint32_t backing_id, bool backing_y_0_top,
+                            uint32_t backing_width, uint32_t backing_height,
+                            uint32_t x, uint32_t y,
+                            uint32_t w, uint32_t h)
+{
+    VirtualConsole *vc = container_of(dcl, VirtualConsole, gfx.dcl);
+
+    eglMakeCurrent(qemu_egl_display, vc->gfx.esurface,
+                   vc->gfx.esurface, vc->gfx.ectx);
+
+    vc->gfx.overlay_x = x;
+    vc->gfx.overlay_y = y;
+    vc->gfx.overlay_w = w;
+    vc->gfx.overlay_h = h;
+    egl_fb_setup_for_tex(&vc->gfx.guest_2nd_fb, backing_width, backing_height, backing_id, false);
+}
+
 void gd_egl_scanout_dmabuf(DisplayChangeListener *dcl,
                            QemuDmaBuf *dmabuf)
 {
@@ -226,6 +244,32 @@ void gd_egl_scanout_dmabuf(DisplayChangeListener *dcl,
     gd_egl_scanout_texture(dcl, dmabuf->texture,
                            false, dmabuf->width, dmabuf->height,
                            0, 0, dmabuf->width, dmabuf->height);
+#endif
+}
+
+void gd_egl_overlay_dmabuf(DisplayChangeListener *dcl,
+                           QemuDmaBuf *dmabuf,
+                           int x, int y)
+{
+#ifdef CONFIG_OPENGL_DMABUF
+    if (dmabuf) {
+        egl_dmabuf_import_texture(dmabuf);
+        if (!dmabuf->texture) {
+            gd_egl_overlay_texture(dcl, 0,
+                                   false, 0, 0,
+                                   0, 0, 0, 0);
+            return;
+        }
+	
+        gd_egl_overlay_texture(dcl, dmabuf->texture,
+                               false, dmabuf->width, dmabuf->height,
+                               x, y, dmabuf->width, dmabuf->height);
+    } else {
+        gd_egl_overlay_texture(dcl, 0,
+                               false, 0, 0,
+                               0, 0, 0, 0);
+        
+    }
 #endif
 }
 
@@ -305,16 +349,18 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
         glClear(GL_COLOR_BUFFER_BIT);
     }
     //fprintf(stderr,"code path B\n");
+    egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
+                     vc->gfx.y0_top);
+    if (vc->gfx.guest_2nd_fb.texture) {
+        egl_texture_blend(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_2nd_fb,
+                          vc->gfx.y0_top,
+                          vc->gfx.overlay_x*ww/(vc->gfx.w?vc->gfx.w:1), vc->gfx.overlay_y*wh/(vc->gfx.h?vc->gfx.h:1));
+    }
+    
     if (vc->gfx.cursor_fb.texture) {
-        egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
-                         vc->gfx.y0_top);
         egl_texture_blend(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.cursor_fb,
                           vc->gfx.y0_top,
                           vc->gfx.cursor_x*ww/(vc->gfx.w?vc->gfx.w:1), vc->gfx.cursor_y*wh/(vc->gfx.h?vc->gfx.h:1));
-    } else {
-        //egl_fb_blit(&vc->gfx.win_fb, &vc->gfx.guest_fb, !vc->gfx.y0_top);
-        egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
-                         vc->gfx.y0_top);
     }
 
     eglSwapBuffers(qemu_egl_display, vc->gfx.esurface);
