@@ -20,6 +20,7 @@
 #include "pci.h"
 
 #ifndef DRM_PLANE_TYPE_PRIMARY
+# define DRM_PLANE_TYPE_OVERLAY 0
 # define DRM_PLANE_TYPE_PRIMARY 1
 # define DRM_PLANE_TYPE_CURSOR  2
 #endif

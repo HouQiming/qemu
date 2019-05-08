@@ -31,12 +31,7 @@
 #include "shader/texture-blit-vert.h"
 #include "shader/texture-blit-flip-vert.h"
 #include "shader/texture-blit-frag.h"
-
-struct QemuGLShader {
-    GLint texture_blit_prog;
-    GLint texture_blit_flip_prog;
-    GLint texture_blit_vao;
-};
+#include "shader/texture-blit-ext-frag.h"
 
 /* ---------------------------------------------------------------------- */
 
@@ -150,17 +145,21 @@ static GLuint qemu_gl_create_compile_link_program(const GLchar *vert_src,
 
 QemuGLShader *qemu_gl_init_shader(void)
 {
-    QemuGLShader *gls = g_new0(QemuGLShader, 1);
+    QemuGLShader *gls = g_new0(QemuGLShader, 2);
 
-    gls->texture_blit_prog = qemu_gl_create_compile_link_program
+    gls[0].texture_blit_prog = qemu_gl_create_compile_link_program
         (texture_blit_vert_src, texture_blit_frag_src);
-    gls->texture_blit_flip_prog = qemu_gl_create_compile_link_program
+    gls[0].texture_blit_flip_prog = qemu_gl_create_compile_link_program
         (texture_blit_flip_vert_src, texture_blit_frag_src);
+    gls[1].texture_blit_prog = qemu_gl_create_compile_link_program
+        (texture_blit_vert_src, texture_blit_ext_frag_src);
+    gls[1].texture_blit_flip_prog = qemu_gl_create_compile_link_program
+        (texture_blit_flip_vert_src, texture_blit_ext_frag_src);
     if (!gls->texture_blit_prog || !gls->texture_blit_flip_prog) {
         exit(1);
     }
 
-    gls->texture_blit_vao =
+    gls[0].texture_blit_vao = gls[1].texture_blit_vao = 
         qemu_gl_init_texture_blit(gls->texture_blit_prog);
 
     return gls;

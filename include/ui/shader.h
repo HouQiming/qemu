@@ -3,7 +3,11 @@
 
 #include <epoxy/gl.h>
 
-typedef struct QemuGLShader QemuGLShader;
+typedef struct QemuGLShader {
+    GLint texture_blit_prog;
+    GLint texture_blit_flip_prog;
+    GLint texture_blit_vao;
+}QemuGLShader;
 
 void qemu_gl_run_texture_blit(QemuGLShader *gls, bool flip);
 

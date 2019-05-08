@@ -116,12 +116,16 @@ void egl_texture_blit(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip)
 {
     glBindFramebuffer(GL_FRAMEBUFFER_EXT, dst->framebuffer);
     glViewport(0, 0, dst->width, dst->height);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, src->texture);
+    //glEnable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, src->texture);
+    //glEnable(GL_TEXTURE_EXTERNAL_OES);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
     glDisable(GL_BLEND);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     //fprintf(stderr,"blit %d <= %d\n",dst->framebuffer,src->texture);
     //fflush(stderr);
-    qemu_gl_run_texture_blit(gls, flip);
+    qemu_gl_run_texture_blit(gls + 1, flip);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
 }
 
 void egl_texture_blend(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip,
@@ -134,11 +138,16 @@ void egl_texture_blend(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip,
         glViewport(x, dst->height - src->height - y,
                    src->width, src->height);
     }
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, src->texture);
+    //glEnable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, src->texture);
+    //glEnable(GL_TEXTURE_EXTERNAL_OES);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, src->texture);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    qemu_gl_run_texture_blit(gls, flip);
+    qemu_gl_run_texture_blit(gls + 1, flip);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     glDisable(GL_BLEND);
 }
 
@@ -286,6 +295,16 @@ void egl_dmabuf_import_texture(QemuDmaBuf *dmabuf)
         EGL_LINUX_DRM_FOURCC_EXT,       dmabuf->fourcc,
         EGL_NONE, /* end of list */
     };
+    
+    //if(dmabuf->fourcc==0x56595559&&dmabuf->width*2>dmabuf->stride){
+    //    //YUYV, hack size - it's indeed that
+    //    //the YUV textures are implemented as GR88 + RGBA8 / BGRA8 in mesa
+    //    //samplerExternalOES is required to take advantage of that
+    //    attrs[7]=dmabuf->stride>>1;
+    //    attrs[9]=attrs[7]*9/16-1;
+    //    //attrs[11]=0x36315559;
+    //    //attrs[11]=0x59565955;
+    //}
 
     if (dmabuf->texture != 0) {
         return;
@@ -296,20 +315,31 @@ void egl_dmabuf_import_texture(QemuDmaBuf *dmabuf)
                               EGL_LINUX_DMA_BUF_EXT,
                               NULL, attrs);
     if (image == EGL_NO_IMAGE_KHR) {
+        //YUYV
+        fprintf(stderr,"fourcc: %08x %d %d %d\n",dmabuf->fourcc,dmabuf->width,dmabuf->height,dmabuf->stride);
+        fflush(stderr);
         error_report("eglCreateImageKHR failed");
         return;
     }
 
     glGenTextures(1, &dmabuf->texture);
-    glBindTexture(GL_TEXTURE_2D, dmabuf->texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glBindTexture(GL_TEXTURE_2D, dmabuf->texture);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)image);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, dmabuf->texture);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)image);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
     //fprintf(stderr,"egl_dmabuf_import_texture %d %d => %d\n",dmabuf->width,dmabuf->height,dmabuf->texture);
     //fflush(stderr);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)image);
     eglDestroyImageKHR(qemu_egl_display, image);
 }
 
@@ -426,6 +456,11 @@ static int qemu_egl_init_dpy(EGLNativeDisplayType dpy,
     EGLBoolean b;
     EGLint n;
     bool gles = (mode == DISPLAYGL_MODE_ES);
+    //if(gles){
+    //    fprintf(stderr,"%s:%d: GLES\n",__FILE__,__LINE__);fflush(stdout);
+    //}else{
+    //    fprintf(stderr,"%s:%d: GL core\n",__FILE__,__LINE__);fflush(stdout);
+    //}
 
     qemu_egl_display = qemu_egl_get_display(dpy, platform);
     if (qemu_egl_display == EGL_NO_DISPLAY) {

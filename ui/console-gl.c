@@ -74,7 +74,7 @@ void surface_gl_create_texture(QemuGLShader *gls,
     glBindTexture(GL_TEXTURE_2D, surface->texture);
     glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT,
                   surface_stride(surface) / surface_bytes_per_pixel(surface));
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                  surface_width(surface),
                  surface_height(surface),
                  0, surface->glformat, surface->gltype,
@@ -93,15 +93,18 @@ void surface_gl_update_texture(QemuGLShader *gls,
     assert(gls);
 
     if(surface->texture){
+        //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
         glBindTexture(GL_TEXTURE_2D, surface->texture);
+        //fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
         glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT,
                       surface_stride(surface) / surface_bytes_per_pixel(surface));
+    	//fprintf(stderr,"%s:%d: %d\n",__FILE__,__LINE__,glGetError());fflush(stdout);
         glTexSubImage2D(GL_TEXTURE_2D, 0,
                         x, y, w, h,
                         surface->glformat, surface->gltype,
                         data + surface_stride(surface) * y
                         + surface_bytes_per_pixel(surface) * x);
-        //fprintf(stderr,"%s %u %d\n",__func__,surface->texture,glGetError());
+        //fprintf(stderr,"%s:%d: %d %x\n",__FILE__,__LINE__,glGetError(),surface->glformat);fflush(stdout);
     }
 }
 
@@ -113,6 +116,7 @@ void surface_gl_render_texture(QemuGLShader *gls,
     glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    glBindTexture(GL_TEXTURE_2D, surface->texture);
     qemu_gl_run_texture_blit(gls, false);
     //fprintf(stderr,"%s %u %d\n",__func__,surface->texture,glGetError());
 }
